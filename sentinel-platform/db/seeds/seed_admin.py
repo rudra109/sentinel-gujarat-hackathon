@@ -8,7 +8,7 @@ import sys
 import os
 
 # Override DATABASE_URL to use localhost (seed runs outside Docker)
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://sentinel:sentinel_secret@localhost:5432/sentinel_db")
+os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://sentinel:sentinel_secret@localhost:5433/sentinel_db")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'services', 'api'))

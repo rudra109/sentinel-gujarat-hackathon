@@ -22,7 +22,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sentinel_secret}
       POSTGRES_DB: ${POSTGRES_DB:-sentinel_db}
     ports:
-      - "5432:5432"
+      - "5433:5432"  # 5433 avoids conflict with any local Windows PostgreSQL
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

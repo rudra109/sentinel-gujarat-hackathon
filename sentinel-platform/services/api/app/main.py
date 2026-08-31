@@ -31,6 +31,42 @@ async def startup_camera_sync():
             logger.error(f"Camera sync failed: {e}")
 
 
+async def auto_seed_admin():
+    """
+    Auto-create the default super_admin on first startup.
+    No seed script needed — just start the API and the admin is ready.
+    Credentials: admin@sentinel.gujarat.gov.in / Sentinel@2026
+    """
+    from app.core.database import AsyncSessionLocal
+    from app.models.user import User
+    from sqlalchemy import select
+    import bcrypt as _bcrypt
+
+    ADMIN_EMAIL = "admin@sentinel.gujarat.gov.in"
+    ADMIN_PASSWORD = "Sentinel@2026"
+
+    async with AsyncSessionLocal() as db:
+        try:
+            result = await db.execute(select(User).where(User.email == ADMIN_EMAIL))
+            if result.scalar_one_or_none():
+                logger.info("Admin user already exists — skipping auto-seed.")
+                return
+            # Use bcrypt directly — compatible with all versions including 4.x on Python 3.13
+            pw_hash = _bcrypt.hashpw(ADMIN_PASSWORD.encode("utf-8"), _bcrypt.gensalt(12)).decode("utf-8")
+            admin = User(
+                email=ADMIN_EMAIL,
+                full_name="Sentinel Administrator",
+                password_hash=pw_hash,
+                role="super_admin",
+                is_active=True,
+            )
+            db.add(admin)
+            await db.commit()
+            logger.info("✅ Auto-seeded admin: admin@sentinel.gujarat.gov.in / Sentinel@2026")
+        except Exception as e:
+            logger.error(f"Auto-seed failed: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ── Startup ───────────────────────────────────────────────
@@ -41,6 +77,9 @@ async def lifespan(app: FastAPI):
         # PostGIS extension
         await conn.execute(__import__('sqlalchemy').text("CREATE EXTENSION IF NOT EXISTS postgis"))
         await conn.run_sync(Base.metadata.create_all)
+
+    # Auto-create admin user if not present (no seed script needed)
+    await auto_seed_admin()
 
     # Schedule periodic camera sync
     scheduler.add_job(
